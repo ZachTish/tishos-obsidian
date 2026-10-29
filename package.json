@@ -1,0 +1,15 @@
+{
+  "name": "tishos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal TishOs Obsidian plugin.",
+  "scripts": {
+    "test": "tsc --noEmit && node --test tests/*.test.mjs",
+    "build": "tsc --noEmit && node esbuild.config.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "obsidian": "1.14.4",
+    "typescript": "5.9.3"
+  }
+}
