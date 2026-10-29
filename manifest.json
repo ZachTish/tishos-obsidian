@@ -1,7 +1,7 @@
 {
   "id": "tishos",
   "name": "TishOs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "1.0.0",
   "description": "A minimal home for deliberately selected Obsidian features.",
   "author": "Zach Tisherman",

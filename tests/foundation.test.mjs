@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { build } from "esbuild";
 
-test("foundation does no application work during load/unload cycles", async () => {
+test("load/unload only reads plugin settings and registers the command and settings tab", async () => {
   const result = await build({
     entryPoints: ["src/main.ts"], bundle: true, write: false,
     external: ["obsidian"], format: "cjs", platform: "browser",
@@ -14,15 +14,19 @@ test("foundation does no application work during load/unload cycles", async () =
   const guarded = new Proxy({}, { get: (_, key) => unexpected(String(key)) });
   class HostPlugin {
     constructor(app, manifest) { this.app = app; this.manifest = manifest; }
-    onload() {}
+    async loadData() { counts.loads++; return null; }
+    addCommand(command) { counts.commands++; assert.equal(command.id, "open-app"); }
+    addSettingTab() { counts.tabs++; }
     onunload() {}
   }
-  // Anything beyond the host lifecycle is outside this version's scope.
+  const counts = { loads: 0, commands: 0, tabs: 0 };
+  class HostSettingsTab {}
+  // Vault access, event registrations, writes, timers and launches are forbidden on load.
   Object.setPrototypeOf(HostPlugin.prototype, guarded);
   const module = { exports: {} };
   runInNewContext(result.outputFiles[0].text, {
     module, exports: module.exports,
-    require(id) { assert.equal(id, "obsidian"); return { Plugin: HostPlugin }; },
+    require(id) { assert.equal(id, "obsidian"); return { Plugin: HostPlugin, PluginSettingTab: HostSettingsTab }; },
     window: guarded, document: guarded,
     fetch: () => unexpected("fetch"),
     setTimeout: () => unexpected("setTimeout"),
@@ -36,8 +40,8 @@ test("foundation does no application work during load/unload cycles", async () =
     await instance.onunload();
   }
   const external = Object.values(result.metafile.outputs).flatMap(output => output.imports);
-  assert.deepEqual(external.map(item => item.path), ["obsidian"]);
-  assert.ok(result.outputFiles[0].contents.length < 2048, "Empty foundation unexpectedly exceeds 2 KiB");
+  assert.deepEqual([...new Set(external.map(item => item.path))], ["obsidian"]);
+  assert.deepEqual(counts, { loads: 3, commands: 3, tabs: 3 });
 });
 
 test("release metadata agrees and adds no runtime dependencies", async () => {
