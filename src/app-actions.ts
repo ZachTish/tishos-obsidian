@@ -10,6 +10,9 @@ interface AppAction {
 // Add an entry only after the native app supports its link. IDs stay stable.
 export const APP_ACTIONS: readonly AppAction[] = [
   { id: "open-app", name: "Open TishOS app" },
+  { id: "log-food", name: "Log food", link: "tishos://food/log" },
+  { id: "scan-food", name: "Scan food barcode", link: "tishos://food/log?mode=scan" },
+  { id: "log-workout", name: "Log workout", link: "tishos://workout/log" },
 ];
 
 export function validateAppLink(input: string): string {

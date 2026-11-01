@@ -91,11 +91,40 @@ test("synchronous launch errors show a useful message without exposing the URL",
   assert.ok(!h.notices[0].includes("private"));
 });
 
-test("action IDs are unique and no unimplemented action links ship", () => {
+test("the command catalog has stable, unique IDs and keeps the custom-link command", () => {
   const { APP_ACTIONS } = host().load("app-actions.js");
   assert.equal(new Set(APP_ACTIONS.map(a => a.id)).size, APP_ACTIONS.length);
-  assert.deepEqual(Array.from(APP_ACTIONS, a => a.id), ["open-app"]);
+  assert.deepEqual(Array.from(APP_ACTIONS, a => a.id), ["open-app", "log-food", "scan-food", "log-workout"]);
   assert.equal(APP_ACTIONS[0].link, undefined);
+});
+
+test("logging commands open the native app's exact supported routes without plugin configuration", async () => {
+  for (const saved of [null, { appLink: "https://example.com/custom?private=keep" }]) {
+    const h = host({ saved });
+    const p = new (h.load("main.js").default)(h.app);
+    await p.onload();
+    assert.deepEqual(h.opened, [], "loading must not open a native action");
+    h.commands.find(c => c.id === "log-food").callback();
+    h.commands.find(c => c.id === "scan-food").callback();
+    h.commands.find(c => c.id === "log-workout").callback();
+    assert.deepEqual(h.opened, ["tishos://food/log", "tishos://food/log?mode=scan", "tishos://workout/log"]);
+    assert.deepEqual(h.notices, []);
+    assert.deepEqual(h.writes, [], "dispatch must not save settings or copy note data");
+    assert.equal(p.settings.appLink, saved?.appLink ?? "");
+  }
+});
+
+test("repeated logging commands dispatch once per invocation without registering background work", async () => {
+  const h = host();
+  const p = new (h.load("main.js").default)(h.app);
+  await p.onload();
+  const routes = ["tishos://food/log", "tishos://food/log?mode=scan", "tishos://workout/log"];
+  for (let i = 0; i < 20; i++) {
+    for (const id of ["log-food", "scan-food", "log-workout"]) h.commands.find(c => c.id === id).callback();
+  }
+  assert.equal(h.opened.length, 60);
+  assert.ok(h.opened.every((url, index) => url === routes[index % routes.length]));
+  assert.deepEqual(h.writes, []);
 });
 
 test("command uses current saved settings, never an unsaved draft", async () => {
@@ -157,7 +186,7 @@ test("bad persisted configuration does not break plugin startup", async () => {
     const p = new (h.load("main.js").default)(h.app);
     await p.onload();
     assert.equal(p.settings.appLink, "");
-    assert.equal(h.commands.length, 1);
+    assert.equal(h.commands.length, 4);
     assert.equal(h.opened.length, 0);
     assert.equal(h.writes.length, 0);
   }

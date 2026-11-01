@@ -1,23 +1,34 @@
 # TishOs
 
-A small Obsidian plugin for features Zach explicitly chooses to keep. Version 0.2.0 adds a command scaffold for opening the native TishOS app through links it supports.
+A small Obsidian plugin for features Zach explicitly chooses to keep. Version 0.3.0 adds direct commands for native TishOS food logging, barcode scanning and workouts.
 
 ## Current behavior
 
-The command **TishOs: Open TishOS app** opens the link saved under **Settings → TishOs → App link**. Paste a link supported by the native app and press **Save**. The default is blank; invoking the command before configuration explains where to set it. Saving never launches the app. Clearing and saving the field disables the launch until another link is configured.
+Use these commands from Obsidian's command palette or assign ordinary Obsidian hotkeys:
+
+| Command | Opens |
+| --- | --- |
+| **TishOs: Log food** | The native food picker, using `tishos://food/log`. |
+| **TishOs: Scan food barcode** | The same logging flow with its scanner, using `tishos://food/log?mode=scan`. |
+| **TishOs: Log workout** | The native Workouts workspace, using `tishos://workout/log`. Choose a routine, start an empty workout, or resume your active workout there. |
+| **TishOs: Open TishOS app** | The custom link saved under **Settings → TishOs → App link**. |
+
+The complete command set requires native TishOS **0.39.10 (303) or newer** on that device, with its vault and logging configured in the native app. Earlier app builds may support food logging but do not handle the workout link. These commands work without setting the plugin's optional App link. The app owns food selection, camera permission, portions, workout sessions and explicit saving. Dispatch passes no Obsidian note content, vault path or credentials; it uses the vault selected in TishOS, which may differ from the active Obsidian vault. Opening a command does not itself start a workout or save a log. Repeated-entry and unsaved-draft handling stay with the native app.
+
+The existing **Open TishOS app** command remains customizable. Paste a link supported by the native app and press **Save**. Its default is blank; invoking that command before configuration explains where to set it. Saving never launches the app. Clearing and saving the field disables only that custom-link command until another link is configured.
 
 Native app links (`scheme://…`) and HTTPS universal links are supported. Executable/file URLs, HTTP URLs, malformed links and embedded URL credentials are rejected. Links and encoded query parameters are passed through unchanged. HTTPS links may open a browser if the device does not associate them with an installed app. The operating system may prompt before switching apps. This plugin cannot confirm delivery or completion of a native action; a missing app or unsupported route may fail outside Obsidian.
 
-The native app owns its URL scheme, supported actions, parameter validation and any return to Obsidian. This release does not assume a TishOS route exists, implement a scanner, or add native app handlers. Physical iPhone/iPad app handoff has not been validated.
+The native app owns its URL scheme, supported actions, parameter validation and any return to Obsidian. These links match its `NativeCommandRoute` parser and route tests, including the existing `FoodRoute` modes. This plugin does not implement a scanner, workout engine or native app handlers. Physical iPhone/iPad app handoff has not been validated.
 
-Startup reads this plugin's settings once and registers one command and one settings tab. There are no vault scans, file/editor listeners, timers, indexes, network requests, note reads/writes, custom views or styles. Only an explicit Save writes plugin settings. Existing TPS plugins remain independent; nothing is migrated or disabled automatically.
+Startup reads this plugin's settings once and registers four commands and one settings tab. There are no vault scans, file/editor listeners, timers, indexes, network requests, note reads/writes, custom views or styles. Only an explicit Save writes plugin settings. Existing TPS plugins remain independent; nothing is migrated or disabled automatically. Health and GCM are not required.
 
 ## Adding an app command
 
-`src/app-actions.ts` contains the short `APP_ACTIONS` list. After the native app supports a route, add a stable command ID, a user-facing name and its exact link. For example, **if** the native app implements this hypothetical route:
+`src/app-actions.ts` contains the short `APP_ACTIONS` list. After the native app supports a route, add a stable command ID, a user-facing name and its exact link. For example, the scanner's implemented route is:
 
 ```ts
-{ id: "scan-food", name: "Scan food barcode", link: "tishos://food/scan" }
+{ id: "scan-food", name: "Scan food barcode", link: "tishos://food/log?mode=scan" }
 ```
 
 The entry point registers each entry with Obsidian and the shared launcher validates and opens its link. Omitting `link` uses the saved App link. Use URL/URLSearchParams to encode any future action parameters; do not concatenate unescaped note text into a link. Context-dependent actions should get a small explicit callback when needed, not a background service.
@@ -40,7 +51,7 @@ Dependencies and shared abstractions need an actual use, not a planned one. The 
 
 ## Installation
 
-Add `ZachTish/tishos-obsidian` in BRAT and select release `0.2.0`. The plugin appears as **TishOs**.
+Add `ZachTish/tishos-obsidian` in BRAT and select release `0.3.0`. The plugin appears as **TishOs**.
 
 Release assets are `main.js` and `manifest.json`. Existing TPS plugins stay installed independently; adding TishOs does not replace them.
 

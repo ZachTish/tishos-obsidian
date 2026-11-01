@@ -15,7 +15,7 @@ test("load/unload only reads plugin settings and registers the command and setti
   class HostPlugin {
     constructor(app, manifest) { this.app = app; this.manifest = manifest; }
     async loadData() { counts.loads++; return null; }
-    addCommand(command) { counts.commands++; assert.equal(command.id, "open-app"); }
+    addCommand(command) { counts.commands++; assert.ok(["open-app", "log-food", "scan-food", "log-workout"].includes(command.id)); }
     addSettingTab() { counts.tabs++; }
     onunload() {}
   }
@@ -41,7 +41,7 @@ test("load/unload only reads plugin settings and registers the command and setti
   }
   const external = Object.values(result.metafile.outputs).flatMap(output => output.imports);
   assert.deepEqual([...new Set(external.map(item => item.path))], ["obsidian"]);
-  assert.deepEqual(counts, { loads: 3, commands: 3, tabs: 3 });
+  assert.deepEqual(counts, { loads: 3, commands: 12, tabs: 3 });
 });
 
 test("release metadata agrees and adds no runtime dependencies", async () => {
